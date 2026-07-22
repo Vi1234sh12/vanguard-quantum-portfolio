@@ -1,0 +1,680 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h1 class="display" style="font-size: 2.5rem; margin: 0;">Inspection Terminal</h1>
+        <small class="mono text-muted">RUN_ID: #{{ run.id }} | PROFILE: {{ run.profile_name }}</small>
+    </div>
+    <a href="/" class="btn-ghost">&larr; BACK</a>
+</div>
+
+<!-- Tab Navigation -->
+<div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('overview', event)">Overview</button>
+    <button class="nav-tab" onclick="switchTab('quantum', event)">Quantum Architecture</button>
+    <button class="nav-tab" onclick="switchTab('risk', event)">Risk & Compliance</button>
+</div>
+
+<!-- ==========================================
+     TAB 1: OVERVIEW
+     ========================================== -->
+<div id="tab-overview" class="tab-content active">
+    
+    <!-- ROW 1: Core Performance Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="panel">
+                <div class="panel-header">CORE PERFORMANCE METRICS</div>
+                <div class="panel-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <span class="label">Expected Return</span>
+                            <div class="metric-value" style="color: #0F4C81;">{{ ((run.metrics.get('expected_return', 0) if run.metrics else 0) * 100) | round(2) }}%</div>
+                        </div>
+                        <div class="col-md-4" style="border-left: 1px solid var(--border-light); border-right: 1px solid var(--border-light);">
+                            <span class="label">Expected Volatility</span>
+                            <div class="metric-value text-muted">{{ ((run.metrics.get('expected_volatility', 0) if run.metrics else 0) * 100) | round(2) }}%</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="label">Sharpe Ratio</span>
+                            <div class="metric-value" style="color: #2A9D8F;">{{ (run.metrics.get('sharpe_ratio', 0) if run.metrics else 0) | round(4) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: Methodology Comparison & Efficient Frontier -->
+    <div class="row mb-4">
+        <div class="col-md-5">
+            <div class="panel h-100">
+                <div class="panel-header">OPTIMIZER METHODOLOGY COMPARISON</div>
+                <div class="panel-body" style="height: 350px; position: relative;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="panel h-100">
+                <div class="panel-header">EFFICIENT FRONTIER & QUANTUM POSITIONING</div>
+                <div class="panel-body" style="height: 350px; position: relative;">
+                    <canvas id="frontierChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3: Allocation Charts -->
+    <div class="row mb-4">
+        <div class="col-md-5">
+            <div class="panel h-100">
+                <div class="panel-header">ALLOCATION DISTRIBUTION</div>
+                <div class="panel-body" style="height: 300px; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <canvas id="donutChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="panel h-100">
+                <div class="panel-header">DISCRETE WEIGHT VECTOR</div>
+                <div class="panel-body" style="height: 300px; position: relative;">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 4: AI Co-Pilot Executive Summary -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <span>AI CO-PILOT: EXECUTIVE SUMMARY</span>
+                    <span class="mono">EXPLAINABILITY ACTIVE</span>
+                </div>
+                <div class="panel-body">
+                    <p class="mono" style="font-size: 14px; line-height: 1.8; color: var(--fg); white-space: pre-wrap;">
+                        {% if run.ai_memo %}
+                            {{ run.ai_memo | safe }}
+                        {% else %}
+                            AI Co-Pilot analysis not available for this historical run.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     TAB 2: QUANTUM ARCHITECTURE
+     ========================================== -->
+<div id="tab-quantum" class="tab-content">
+    
+    <!-- ROW 1: QUBO Matrix & Math Formulation -->
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <div class="panel h-100">
+                <div class="panel-header">QUBO MATRIX COUPLING SNIPPET (Top-Left 6x6)</div>
+                <div class="panel-body" style="background: var(--muted); overflow-x: auto; padding: 24px; display: flex; justify-content: center; align-items: center;">
+                    {% if run.qubo_snippet %}
+                        <div style="display: inline-block; border: 2px solid var(--fg); overflow: hidden;">
+                            {% for row in run.qubo_snippet %}
+                                <div style="display: flex;">
+                                    {% for val in row %}
+                                        {% set abs_val = val | abs %}
+                                        {% set op = (abs_val * 100) | round(0) | int %}
+                                        
+                                        {% if val < 0 %}
+                                            <div class="qubo-cell" style="width: 70px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(15, 76, 129, {{ op / 100 }}); border: 1px solid var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--bg); font-weight: 600;">
+                                                {{ "%.2f"|format(val) }}
+                                            </div>
+                                        {% elif val > 0 %}
+                                            <div class="qubo-cell" style="width: 70px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(230, 57, 70, {{ op / 100 }}); border: 1px solid var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--bg); font-weight: 600;">
+                                                {{ "%.2f"|format(val) }}
+                                            </div>
+                                        {% else %}
+                                            <div class="qubo-cell" style="width: 70px; height: 50px; display: flex; align-items: center; justify-content: center; background: var(--bg); border: 1px solid var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted-fg);">
+                                                0.00
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mono">QUBO snippet not generated.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5">
+            <div class="panel h-100">
+                <div class="panel-header">QUBO MATHEMATICAL FORMULATION</div>
+                <div class="panel-body" style="background: var(--bg); display: flex; flex-direction: column; justify-content: center; gap: 32px; padding: 32px;">
+                    <div>
+                        <span class="label">1. QUBO Objective Function</span>
+                        <div class="math-block">
+                            $$ \min_{x \in \{0,1\}^n} \quad x^T Q x $$                         </div>
+                    </div>
+                    <div>
+                        <span class="label">2. Ising Hamiltonian Mapping</span>
+                        <div class="math-block">
+                            $$ H_C = \sum_i h_i Z_i + \sum_{i<j} J_{ij} Z_i Z_j $$                         </div>
+                    </div>
+                    <div>
+                        <span class="label">3. Binary Weight Encoding</span>
+                        <div class="math-block">
+                            $$ w_i = \Delta \sum_{j=0}^{5} 2^j x_{i,j} $$                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: Quantum Circuit Architecture -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="panel">
+                <div class="panel-header">QUANTUM CIRCUIT ANATOMY (Generated via Qiskit)</div>
+                <div class="panel-body" style="background: var(--bg);">
+                    {% if run.circuit_diagram %}
+                        <div style="position: relative; border: 2px solid var(--fg); overflow: hidden; margin-bottom: 24px;">
+                            
+                            <!-- Control Bar (Highly Visible) -->
+                            <div style="position: absolute; top: 12px; right: 12px; z-index: 10; background: var(--bg); border: 2px solid var(--fg); padding: 6px; display: flex; gap: 6px; align-items: center;">
+                                <button onclick="zoomCircuit(-0.2)" style="border: none; background: none; cursor: pointer; font-size: 18px; font-weight: bold; color: var(--fg);">&minus;</button>
+                                <span id="zoomLevel" class="mono" style="color: var(--fg); font-size: 12px; min-width: 45px; text-align: center;">200%</span>
+                                <button onclick="zoomCircuit(0.2)" style="border: none; background: none; cursor: pointer; font-size: 18px; font-weight: bold; color: var(--fg);">+</button>
+                                <button onclick="resetZoom()" style="border: none; background: none; cursor: pointer; font-size: 12px; color: var(--fg); text-decoration: underline;">Reset</button>
+                            </div>
+                            
+                            <!-- Scrollable Canvas Area -->
+                            <div id="circuitCanvasContainer" style="height: 450px; overflow: auto; background: var(--bg); padding: 24px 0;">
+                                <img id="circuitImg" src="data:image/png;base64,{{ run.circuit_diagram }}" alt="QAOA Quantum Circuit" style="width: 200%; height: auto; display: block; transition: width 0.2s ease; margin: 0 auto; filter: invert(1);"> <!-- Invert to make black on white -->
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Circuit Anatomy Legend -->
+                        <div class="row mt-4" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; border-top: 1px solid var(--border-light); padding-top: 24px;">
+                            <div class="col-md-3 text-center mb-3">
+                                <div style="display: inline-block; padding: 6px 12px; background: var(--fg); color: var(--bg); font-weight: 700;">H</div>
+                                <div class="label mt-3" style="margin-bottom: 2px;">HADAMARD GATE</div>
+                                <div class="text-muted">Initial State Preparation</div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div style="display: inline-block; padding: 6px 12px; border: 1px solid var(--fg); color: var(--fg);">RZZ (&gamma;)</div>
+                                <div class="label mt-3" style="margin-bottom: 2px;">COST HAMILTONIAN (H_C)</div>
+                                <div class="text-muted">QUBO Matrix Encoding</div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div style="display: inline-block; padding: 6px 12px; border: 1px solid var(--fg); color: var(--fg);">Rx (&beta;)</div>
+                                <div class="label mt-3" style="margin-bottom: 2px;">MIXER HAMILTONIAN (H_M)</div>
+                                <div class="text-muted">Hilbert Space Exploration</div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div style="display: inline-block; padding: 6px 12px; border: 1px solid var(--fg); color: var(--fg);">M</div>
+                                <div class="label mt-3" style="margin-bottom: 2px;">MEASUREMENT</div>
+                                <div class="text-muted">Classical Readout</div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mono" style="padding: 48px;">Circuit diagram not generated for this run.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3: Quantum vs Random Baseline Validation -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="panel h-100">
+                <div class="panel-header">OPTIMIZATION EFFECTIVENESS: QUANTUM VS. RANDOM BASELINE</div>
+                <div class="panel-body" style="height: 350px; position: relative;">
+                    <canvas id="validationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     TAB 3: RISK & COMPLIANCE
+     ========================================== -->
+<div id="tab-risk" class="tab-content">
+    
+    <!-- ROW 1: Expert Analysis & Compliance -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="panel h-100" style="background: var(--fg); color: var(--bg); border-color: var(--fg);">
+                <div class="panel-header" style="border-bottom: 1px solid var(--bg); color: var(--bg);">AUTOMATED EXPERT ANALYSIS</div>
+                <div class="panel-body text-center d-flex flex-column justify-content-center">
+                    {% set exp = run.expert_analysis if run.expert_analysis else {} %}
+                    <span class="label" style="color: var(--muted);">Financial Viability Score</span>
+                    <div class="metric-value" style="color: var(--bg); font-size: 4rem;">{{ exp.get('viability_score', 0)|round(0) }}<span style="font-size: 2rem;">/100</span></div>
+                    <div class="label mt-3" style="color: var(--muted);">Grade: <span style="color: var(--bg);">{{ exp.get('viability_grade', 'N/A') }}</span></div>
+                    <p class="mt-4 mono" style="font-size: 11px; color: var(--muted);">{{ exp.get('expert_notes', '') }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="panel h-100">
+                <div class="panel-header">COMPLIANCE & GUARDRAILS</div>
+                <div class="panel-body d-flex flex-column justify-content-center">
+                    {% set con = run.constraints if run.constraints else {} %}
+                    {% if con and con.budget %}
+                        <div class="label" style="margin-bottom: 8px;">BUDGET ({{ (con.budget.used * 100)|round(2) }}% / 100%)</div>
+                        <div class="progress-bg"><div class="progress-fill" style="width: {{ con.budget.used * 100 }}%; background: #0F4C81;"></div></div>
+                        
+                        <div class="label mt-4" style="margin-bottom: 8px;">TURNOVER ({{ (con.turnover.used * 100)|round(2) }}% / {{ con.turnover.limit * 100 }}%)</div>
+                        <div class="progress-bg"><div class="progress-fill" style="width: {{ (con.turnover.used / con.turnover.limit) * 100 }}%; background: #2A9D8F;"></div></div>
+                        
+                        <div class="label mt-4" style="margin-bottom: 8px;">EQUITY CAP ({{ (con.equity_cap.used * 100)|round(2) }}% / {{ con.equity_cap.limit * 100 }}%)</div>
+                        <div class="progress-bg"><div class="progress-fill" style="width: {{ (con.equity_cap.used / con.equity_cap.limit) * 100 }}%; background: #E63946;"></div></div>
+                        
+                        {% set liq = con.liquidity if con and con.liquidity else {} %}
+                        {% if liq and liq.used %}
+                        <div class="label mt-4" style="margin-bottom: 8px;">LIQUIDITY CAP ({{ liq.asset }}: {{ (liq.used * 100)|round(2) }}% / {{ liq.limit * 100 }}%)</div>
+                        <div class="progress-bg" style="margin-bottom: 0;"><div class="progress-fill" style="width: {{ (liq.used / liq.limit) * 100 }}%; background: #8338EC;"></div></div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted mono">No constraint telemetry available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: Advanced Risk Analytics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="panel h-100">
+                <div class="panel-header">ADVANCED RISK ANALYTICS</div>
+                <div class="panel-body">
+                    {% set adv = run.metrics.get('advanced', {}) if run.metrics else {} %}
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <span class="label">Alpha (vs Market)</span>
+                            <div class="metric-value" style="font-size: 2rem; color: #0F4C81;">{{ (adv.get('alpha', 0) * 100)|round(2) }}%</div>
+                        </div>
+                        <div class="col-md-3 mb-3" style="border-left: 1px solid var(--border-light); border-right: 1px solid var(--border-light);">
+                            <span class="label">Beta (vs Market)</span>
+                            <div class="metric-value text-muted" style="font-size: 2rem;">{{ adv.get('beta', 0)|round(4) }}</div>
+                        </div>
+                        <div class="col-md-3 mb-3" style="border-right: 1px solid var(--border-light);">
+                            <span class="label">VaR (95%)</span>
+                            <div class="metric-value text-muted" style="font-size: 2rem;">{{ (adv.get('var_95', 0) * 100)|round(2) }}%</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <span class="label">Sortino Ratio</span>
+                            <div class="metric-value" style="font-size: 2rem; color: #2A9D8F;">{{ adv.get('sortino', 0)|round(4) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3: Institutional Risk Visualizations -->
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <div class="panel h-100">
+                <div class="panel-header">DRAWDOWN CURVE (1Y Out-of-Sample)</div>
+                <div class="panel-body" style="height: 300px; position: relative;">
+                    <canvas id="drawdownChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="panel h-100">
+                <div class="panel-header">ASSET CORRELATION MATRIX (6x6)</div>
+                <div class="panel-body" style="background: var(--muted); display: flex; justify-content: center; align-items: center; height: 300px;">
+                    {% set corr = run.metrics.get('correlation_snippet', []) if run.metrics else [] %}
+                    {% if corr|length > 0 %}
+                    <div style="display: inline-block; border: 2px solid var(--fg); overflow: hidden;">
+                        {% for row in corr %}
+                            <div style="display: flex;">
+                                {% for val in row %}
+                                    {% set op = (val * 100) | round(0) | int %}
+                                    <div style="width: 50px; height: 40px; display: flex; align-items: center; justify-content: center; background: rgba(15, 76, 129, {{ op / 100}}); border: 1px solid var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--bg); font-weight: 600;">
+                                        {{ "%.2f"|format(val) }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <p class="text-muted mono">Correlation data not available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ==========================================
+    // TAB SWITCHING LOGIC & LAZY CHART INIT
+    // ==========================================
+    let chartsInitialized = { quantum: false, risk: false };
+
+    function switchTab(tabName, evt) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        evt.currentTarget.classList.add('active');
+
+        if (tabName === 'quantum' && !chartsInitialized.quantum) {
+            initValidationChart();
+            chartsInitialized.quantum = true;
+        }
+        if (tabName === 'risk' && !chartsInitialized.risk) {
+            initDrawdownChart();
+            chartsInitialized.risk = true;
+        }
+    }
+
+    // ==========================================
+    // QUANTUM CIRCUIT ZOOM LOGIC
+    // ==========================================
+    let currentZoom = 2.0; // Start at 200%
+    const zoomLevelSpan = document.getElementById('zoomLevel');
+    const circuitImg = document.getElementById('circuitImg');
+    const canvasContainer = document.getElementById('circuitCanvasContainer');
+
+    function zoomCircuit(delta) {
+        currentZoom = Math.max(0.5, Math.min(5.0, currentZoom + delta));
+        if (circuitImg) {
+            circuitImg.style.width = `${currentZoom * 100}%`;
+            zoomLevelSpan.innerText = `${Math.round(currentZoom * 100)}%`;
+        }
+    }
+
+    function resetZoom() {
+        currentZoom = 2.0;
+        if (circuitImg) {
+            circuitImg.style.width = `200%`;
+            zoomLevelSpan.innerText = `200%`;
+            if (canvasContainer) {
+                canvasContainer.scrollLeft = 0;
+                canvasContainer.scrollTop = 0;
+            }
+        }
+    }
+
+    if (canvasContainer) {
+        canvasContainer.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                zoomCircuit(e.deltaY > 0 ? -0.2 : 0.2);
+            }
+        });
+    }
+
+    // ==========================================
+    // RENDER KATEX MATH
+    // ==========================================
+    if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });
+    }
+
+    // ==========================================
+    // GLOBAL CHART DEFAULTS (Editorial Color on White)
+    // ==========================================
+    const weightsData = {{ run.weights | tojson }};
+    const labels = Object.keys(weightsData).filter(key => weightsData[key] > 0.001);
+    const data = labels.map(key => (weightsData[key] * 100).toFixed(2));
+    
+    // Sophisticated editorial palette
+    const chartPalette = ['#0F4C81', '#E63946', '#2A9D8F', '#F4A261', '#8338EC', '#3A86FF', '#06D6A0', '#FFBE0B', '#FB5607', '#FF006E', '#8D99AE', '#6A4C93'];
+
+    Chart.defaults.font.family = "'JetBrains Mono', monospace";
+    Chart.defaults.color = '#525252'; // Dark gray for axis labels
+
+    // ==========================================
+    // 1. METHODOLOGY COMPARISON CHART
+    // ==========================================
+    const ctxComp = document.getElementById('comparisonChart');
+    if (ctxComp) {
+        const ctxCompContext = ctxComp.getContext('2d');
+        {% set comp_dict = run.metrics.get('comparison', {}) if run.metrics else {} %}
+        const compData = {{ comp_dict | tojson }};
+        const c = compData.classical || {};
+        const q = compData.qubo || {};
+        const qa = compData.qaoa || {};
+        
+        if (Object.keys(compData).length > 0) {
+            new Chart(ctxCompContext, {
+                type: 'bar',
+                data: {
+                    labels: ['Classical', 'Raw QUBO', 'Hybrid QAOA'],
+                    datasets: [
+                        { label: 'Return (%)', data: [(c.ret || 0) * 100, (q.ret || 0) * 100, (qa.ret || 0) * 100], backgroundColor: '#0F4C81', borderColor: '#0F4C81', borderWidth: 1, yAxisID: 'y', order: 2 },
+                        { label: 'Volatility (%)', data: [(c.vol || 0) * 100, (q.vol || 0) * 100, (qa.vol || 0) * 100], backgroundColor: '#E63946', borderColor: '#E63946', borderWidth: 1, yAxisID: 'y', order: 2 },
+                        { label: 'Sharpe Ratio', data: [c.sharpe || 0, q.sharpe || 0, qa.sharpe || 0], backgroundColor: '#2A9D8F', borderColor: '#2A9D8F', type: 'line', borderWidth: 3, pointRadius: 6, pointStyle: 'circle', yAxisID: 'y1', order: 1 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#000000', usePointStyle: true } }, tooltip: { callbacks: { label: (ctx) => { if (ctx.dataset.yAxisID === 'y1') return `${ctx.dataset.label}: ${ctx.raw.toFixed(4)}`; return `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%`; } } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#000000' } },
+                        y: { type: 'linear', position: 'left', title: { display: true, text: 'Return & Vol (%)', color: '#000000' }, grid: { color: '#E5E5E5' }, ticks: { color: '#000000' }, beginAtZero: true },
+                        y1: { type: 'linear', position: 'right', title: { display: true, text: 'Sharpe Ratio', color: '#000000' }, grid: { drawOnChartArea: false }, ticks: { color: '#000000' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+    }
+
+    // ==========================================
+    // 2. EFFICIENT FRONTIER CHART
+    // ==========================================
+    const ctxF = document.getElementById('frontierChart');
+    if (ctxF) {
+        const ctxFContext = ctxF.getContext('2d');
+        {% set frontier_data = run.frontier if run.frontier else {} %}
+        const frontierData = {{ frontier_data | tojson }};
+        
+        if (frontierData && Object.keys(frontierData).length > 0 && frontierData.curve) {
+            const curve = frontierData.curve.map(p => ({x: p.risk * 100, y: p.return * 100}));
+            const qPoint = frontierData.quantum_point || {risk: 0, return: 0};
+            const cPoint = frontierData.classical_point || {risk: 0, return: 0};
+
+            new Chart(ctxFContext, {
+                type: 'scatter',
+                data: { datasets: [
+                    { label: 'Classical Frontier', data: curve, showLine: true, borderColor: '#A3A3A3', borderWidth: 2, pointRadius: 0, order: 3 },
+                    { label: 'CAL (Quantum)', data: [{x: 0, y: 0}, {x: qPoint.risk * 100, y: qPoint.return * 100}], showLine: true, borderColor: '#0F4C81', borderWidth: 1.5, borderDash: [5, 5], pointRadius: 0, order: 2 },
+                    { label: 'Classical Min Var', data: [{x: cPoint.risk * 100, y: cPoint.return * 100}], backgroundColor: '#E63946', borderColor: '#E63946', borderWidth: 2, pointRadius: 8, pointStyle: 'rect', order: 1 },
+                    { label: 'Quantum (QAOA)', data: [{x: qPoint.risk * 100, y: qPoint.return * 100}], backgroundColor: '#2A9D8F', borderColor: '#2A9D8F', borderWidth: 2, pointRadius: 10, pointStyle: 'circle', order: 0 }
+                ]},
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { title: { display: true, text: 'Volatility (%)', color: '#000000' }, grid: { color: '#E5E5E5' }, ticks: { color: '#000000' }, min: 0 }, y: { title: { display: true, text: 'Return (%)', color: '#000000' }, grid: { color: '#E5E5E5' }, ticks: { color: '#000000' }, min: 0 } },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#000000', usePointStyle: true, font: { size: 11 } } }, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: Risk ${ctx.raw.x.toFixed(2)}%, Ret ${ctx.raw.y.toFixed(2)}%` } } }
+                }
+            });
+        }
+    }
+
+    // ==========================================
+    // 3. ALLOCATION DONUT CHART
+    // ==========================================
+    const ctxDonut = document.getElementById('donutChart');
+    if (ctxDonut) {
+        new Chart(ctxDonut.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: chartPalette, borderColor: '#FFFFFF', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#000000', font: { size: 10 } } }, tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}%` } } } }
+        });
+    }
+
+    // ==========================================
+    // 4. DISCRETE WEIGHT VECTOR BAR CHART
+    // ==========================================
+    const ctxBar = document.getElementById('barChart');
+    if (ctxBar) {
+        new Chart(ctxBar.getContext('2d'), {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Weight (%)', data: data, backgroundColor: '#0F4C81', borderColor: '#0F4C81', borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#000000' }, grid: { color: '#E5E5E5' } }, y: { ticks: { color: '#000000' }, grid: { display: false } } } }
+        });
+    }
+
+    // ==========================================
+    // 5. DRAWDOWN CURVE CHART (Lazy Loaded in Risk Tab)
+    // ==========================================
+    function initDrawdownChart() {
+        const ctxDD = document.getElementById('drawdownChart');
+        if (!ctxDD) return;
+        
+        const ctxDDContext = ctxDD.getContext('2d');
+        {% set dd_series = run.metrics.get('drawdown_series', []) if run.metrics else [] %}
+        const ddData = {{ dd_series | tojson }};
+        
+        if (ddData && ddData.length > 0) {
+            new Chart(ctxDDContext, {
+                type: 'line',
+                data: { datasets: [{ label: 'Drawdown (%)', data: ddData, borderColor: '#E63946', backgroundColor: 'rgba(230, 57, 70, 0.1)', fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { type: 'time', time: { unit: 'month' }, grid: { color: '#E5E5E5' }, ticks: { color: '#000000' } },
+                        y: { title: { display: true, text: 'Drawdown (%)', color: '#000000' }, grid: { color: '#E5E5E5' }, ticks: { color: '#000000' }, suggestedMax: 0 }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.y.toFixed(2)}%` } } }
+                }
+            });
+        }
+    }
+
+    // ==========================================
+    // 6. QUANTUM VS RANDOM BASELINE CHART (Lazy Loaded in Quantum Tab)
+    // ==========================================
+    function initValidationChart() {
+        const ctxVal = document.getElementById('validationChart');
+        if (!ctxVal) return;
+        
+        const ctxValContext = ctxVal.getContext('2d');
+        const qaoaEnergies = {{ run.metrics.get('qaoa_energies', []) | tojson }};
+        const randomEnergies = {{ run.metrics.get('random_energies', []) | tojson }};
+        
+        function getDistribution(data, binSize) {
+            if (!data || data.length === 0) return [];
+            const min = Math.min(...data);
+            const histogram = {};
+            data.forEach(val => {
+                const bin = (Math.round((val - min) / binSize) * binSize + min).toFixed(2);
+                histogram[bin] = (histogram[bin] || 0) + 1;
+            });
+            const maxCount = Math.max(...Object.values(histogram));
+            return Object.keys(histogram).map(key => ({ x: parseFloat(key), y: histogram[key] / maxCount })).sort((a, b) => a.x - b.x);
+        }
+
+        const allData = [...qaoaEnergies, ...randomEnergies];
+        if (allData.length === 0) return;
+        const range = Math.max(...allData) - Math.min(...allData);
+        const binSize = range / 50;
+
+        const qaoaDist = getDistribution(qaoaEnergies, binSize);
+        const randomDist = getDistribution(randomEnergies, binSize);
+
+        const minQuantumEnergy = qaoaEnergies.length > 0 ? Math.min(...qaoaEnergies) : 0;
+
+        new Chart(ctxValContext, {
+            type: 'line',
+            data: { datasets: [
+                // 1. Random Baseline (Background - Gray)
+                { 
+                    label: 'Random Baseline (Noise)', 
+                    data: randomDist, 
+                    borderColor: '#A3A3A3', 
+                    backgroundColor: 'rgba(163, 163, 163, 0.2)', 
+                    fill: true, 
+                    tension: 0.5, 
+                    borderWidth: 2,
+                    pointRadius: 0
+                },
+                // 2. Quantum Annealer (Foreground - Deep Blue)
+                { 
+                    label: 'Quantum Annealer (Optimized)', 
+                    data: qaoaDist, 
+                    borderColor: '#0F4C81', 
+                    backgroundColor: 'rgba(15, 76, 129, 0.1)', 
+                    fill: false, 
+                    tension: 0.4, 
+                    borderWidth: 3, 
+                    pointRadius: 5, 
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#0F4C81', 
+                    pointBorderColor: '#FFFFFF', 
+                    pointBorderWidth: 2 
+                },
+                // 3. Ground State Reference Line (Dashed Coral)
+                {
+                    label: 'Quantum Ground State (Min Cost)', 
+                    data: [{x: minQuantumEnergy, y: 0}, {x: minQuantumEnergy, y: 1.05}], 
+                    showLine: true,
+                    borderColor: '#E63946',
+                    borderWidth: 2,
+                    borderDash: [6, 6],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]},
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { 
+                        type: 'linear', 
+                        title: { display: true, text: 'QUBO Energy (Cost) [Lower is Better]', color: '#000000', font: { size: 12 } }, 
+                        grid: { color: '#E5E5E5' }, 
+                        ticks: { color: '#000000' } 
+                    },
+                    y: { 
+                        title: { display: true, text: 'Normalized Probability', color: '#000000', font: { size: 12 } }, 
+                        grid: { color: '#E5E5E5' }, 
+                        ticks: { color: '#000000' }, 
+                        min: 0, 
+                        max: 1.1
+                    }
+                },
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { color: '#000000', usePointStyle: true, font: { size: 11 } } 
+                    }, 
+                    tooltip: { 
+                        callbacks: { 
+                            label: (ctx) => {
+                                if (ctx.dataset.label === 'Quantum Ground State (Min Cost)') {
+                                    return `Ground State Energy: ${ctx.raw.x.toFixed(2)}`;
+                                }
+                                return `Energy: ${ctx.raw.x.toFixed(2)}, Prob: ${ctx.raw.y.toFixed(2)}`;
+                            }
+                        } 
+                    } 
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

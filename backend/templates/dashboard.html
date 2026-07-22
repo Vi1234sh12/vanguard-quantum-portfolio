@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4>Q-MAT (Quantum Multi-Asset Terminal)</h4>
+        <small class="text-muted mono">vanguard-challenge | hybrid-qaoa-architecture</small>
+    </div>
+</div>
+
+<!-- Fixed Loading Alert with Progress Bar -->
+<div id="loadingAlert" class="alert-quantum" style="display: none; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center;">
+        <span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem; margin-right: 8px;"></span>
+        <span id="progressText" class="mono">INITIALIZING...</span>
+    </div>
+    <div class="progress-bg" style="margin-bottom: 0; height: 4px; width: 100%;">
+        <div id="progressBar" class="progress-fill" style="width: 0%; background: var(--accent-blue);"></div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Col: Execution History -->
+    <div class="col-md-9">
+        <div class="panel">
+            <div class="panel-header">
+                <span>// EXECUTION HISTORY</span>
+                <span>{{ runs|length }} Records</span>
+            </div>
+            <div class="panel-body" style="padding: 0;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Profile Name</th>
+                            <th>Status</th>
+                            <th class="text-end">Exp. Return</th>
+                            <th class="text-end">Volatility</th>
+                            <th class="text-end">Sharpe</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in runs %}
+                        <tr>
+                            <td class="mono">#{{ run.id }}</td>
+                            <td class="text-bright">{{ run.profile_name }}</td>
+                            <td><span class="badge-active">{{ run.status }}</span></td>
+                            <td class="text-end mono text-success">{{ ((run.metrics.get('expected_return', 0) if run.metrics else 0) * 100) | round(2) }}%</td>
+                            <td class="text-end mono text-warning">{{ ((run.metrics.get('expected_volatility', 0) if run.metrics else 0) * 100) | round(2) }}%</td>
+                            <td class="text-end mono text-bright">{{ (run.metrics.get('sharpe_ratio', 0) if run.metrics else 0) | round(4) }}</td>
+                            <td class="text-end"><a href="/portfolio/{{ run.id }}" class="btn-ghost">INSPECT →</a></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 30px;">No optimizations executed. Initialize pipeline.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Col: Tunable Goals & System Specs -->
+    <div class="col-md-3">
+        
+        <!-- Tunable Goals Panel -->
+        <div class="panel mb-4">
+            <div class="panel-header">// 🎛️ TUNABLE GOALS</div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <label class="metric-label">Profile Name</label>
+                    <select id="profileName" class="form-select form-select-sm" style="background: var(--bg-card); color: var(--text-bright); border-color: var(--border-bright);">
+                        <option value="Conservative MinVola">Conservative MinVola</option>
+                        <option value="Balanced MinVola">Balanced MinVola</option>
+                        <option value="Aggressive Growth">Aggressive Growth</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="metric-label">Risk Aversion (λ)</label>
+                    <input type="range" class="form-range" min="1" max="10" step="0.5" value="5" id="lambdaInput" oninput="document.getElementById('lambdaVal').innerText = this.value">
+                    <span class="mono text-bright" id="lambdaVal" style="font-size: 12px;">5</span>
+                </div>
+                <div class="mb-3">
+                    <label class="metric-label">Min Return Target (ε)</label>
+                    <input type="range" class="form-range" min="0.02" max="0.12" step="0.005" value="0.07" id="minReturnInput" oninput="document.getElementById('minReturnVal').innerText = (this.value*100).toFixed(1) + '%'">
+                    <span class="mono text-bright" id="minReturnVal" style="font-size: 12px;">7.0%</span>
+                </div>
+                <div class="mb-4">
+                    <label class="metric-label">Max Turnover Limit</label>
+                    <input type="range" class="form-range" min="0.05" max="0.50" step="0.01" value="0.15" id="maxTurnoverInput" oninput="document.getElementById('maxTurnoverVal').innerText = (this.value*100).toFixed(0) + '%'">
+                    <span class="mono text-bright" id="maxTurnoverVal" style="font-size: 12px;">15%</span>
+                </div>
+                
+                <button id="runOptBtn" class="btn-exec w-100">⚡ Execute Pipeline</button>
+            </div>
+        </div>
+
+        <!-- System Specs Panel -->
+        <div class="panel">
+            <div class="panel-header">// SYSTEM SPECS</div>
+            <div class="panel-body" style="padding: 0;">
+                <table>
+                    <tbody>
+                        <tr><td class="mono text-muted">Qubits</td><td class="mono text-bright text-end">78</td></tr>
+                        <tr><td class="mono text-muted">Encoding</td><td class="mono text-bright text-end">6-Bit Binary</td></tr>
+                        <tr><td class="mono text-muted">Hamiltonian</td><td class="mono text-bright text-end">Ising</td></tr>
+                        <tr><td class="mono text-muted">QAOA Layers</td><td class="mono text-bright text-end">p=3</td></tr>
+                        <tr><td class="mono text-muted">Polisher</td><td class="mono text-bright text-end">SLSQP</td></tr>
+                        <tr><td class="mono text-muted">Database</td><td class="mono text-bright text-end">PostgreSQL</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Prevent double execution globally
+    let isExecuting = false;
+
+    document.getElementById('runOptBtn').addEventListener('click', async () => {
+        if (isExecuting) return; // Stop if already running
+        isExecuting = true;
+
+        const btn = document.getElementById('runOptBtn');
+        const alert = document.getElementById('loadingAlert');
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        
+        // Read Tunable Goals from UI Sliders
+        const profileName = document.getElementById('profileName').value;
+        const lambda = parseFloat(document.getElementById('lambdaInput').value);
+        const minReturn = parseFloat(document.getElementById('minReturnInput').value);
+        const maxTurnover = parseFloat(document.getElementById('maxTurnoverInput').value);
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem; margin-right: 8px;"></span> EXECUTING...';
+        alert.style.display = 'flex';
+        progressBar.style.width = '0%';
+        progressBar.style.background = 'var(--accent-blue)';
+
+        try {
+            // 1. Trigger the async pipeline with dynamic config
+            const response = await fetch('/api/optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    profile_name: profileName, 
+                    lambda: lambda, 
+                    min_return: minReturn, 
+                    max_turnover: maxTurnover 
+                })
+            });
+
+            const data = await response.json();
+            const taskId = data.task_id;
+
+            // 2. Poll for status updates
+            const pollInterval = setInterval(async () => {
+                const statusRes = await fetch(`/api/status/${taskId}`);
+                const statusData = await statusRes.json();
+
+                if (statusData.status === 'COMPLETED') {
+                    clearInterval(pollInterval);
+                    progressText.innerText = "SUCCESS: Redirecting to Inspection Terminal...";
+                    progressBar.style.width = '100%';
+                    progressBar.style.background = 'var(--accent-green)';
+                    setTimeout(() => { window.location.href = `/portfolio/${statusData.run_id}`; }, 500);
+                } else if (statusData.status === 'FAILED') {
+                    clearInterval(pollInterval);
+                    progressText.innerText = "ERROR: " + statusData.progress;
+                    progressBar.style.width = '100%';
+                    progressBar.style.background = 'var(--accent-red)';
+                    btn.disabled = false;
+                    btn.innerHTML = '⚡ Execute Pipeline';
+                    isExecuting = false; // Allow retry
+                } else {
+                    // Update UI with current step
+                    progressText.innerText = statusData.progress || "PROCESSING...";
+                    if (statusData.progress.includes("STEP 1")) progressBar.style.width = '15%';
+                    else if (statusData.progress.includes("STEP 2")) progressBar.style.width = '35%';
+                    else if (statusData.progress.includes("STEP 3")) progressBar.style.width = '55%';
+                    else if (statusData.progress.includes("STEP 4")) progressBar.style.width = '75%';
+                    else if (statusData.progress.includes("STEP 5")) progressBar.style.width = '90%';
+                }
+            }, 1000); // Poll every 1 second
+
+        } catch (error) {
+            console.error('Error:', error);
+            btn.disabled = false;
+            btn.innerHTML = '⚡ Execute Pipeline';
+            alert.style.display = 'none';
+            isExecuting = false;
+        }
+    });
+</script>
+{% endblock %}

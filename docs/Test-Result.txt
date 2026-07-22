@@ -1,0 +1,329 @@
+(venv) vishaldhanure@Vishals-MacBook-Air vanguard-quantum-portfolio % python3 main.py 
+/Users/vishaldhanure/Downloads/vanguard-quantum-portfolio/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+🛡️ MINVOLA VARIANT SELECTED (Stopfer et al., 2026)
+   Minimum Return Target (ε): 7.00%
+   Risk Aversion (λ): 5.0
+   Max Turnover: 15.0%
+   Equity Stress Cap: 40.0%
+
+📥 Generating market data...
+📥 Downloading 5 years of historical market data...
+[*********************100%***********************]  12 of 12 completed
+✅ Historical data retrieved, anonymized, and split (4Y Train / 1Y Test).
+📈 Running Geometric Brownian Motion (GBM) Monte Carlo (1000 paths)...
+
+📊 Black-Litterman Expected Returns (Prior=Market, View=GBM):
+Ticker  Implied (PI)    GBM View        Black-Litterman
+----------------------------------------------------
+Asset_1   1.96%          -0.77%           2.82%
+Asset_2   2.63%           9.12%           6.70%
+Asset_3   2.14%          18.22%           9.32%
+Asset_4   2.48%           3.79%           4.30%
+Asset_5   2.63%          -1.73%           2.70%
+Asset_6   1.91%          14.99%           7.89%
+Asset_7   1.82%           0.91%           2.13%
+Asset_8   1.98%          -9.23%          -1.74%
+Asset_9   2.12%           1.86%           3.48%
+Asset_10   2.60%          11.98%           6.60%
+Asset_11   2.44%           4.12%           4.30%
+Asset_12   2.45%           6.27%           4.71%
+----------------------------------------------------
+
+🕯️ Derivative Valuation (Black-Scholes):
+   Added VTI Protective Put (Strike=95.0, T=1.0yr, Vol=17.6%)
+   Black-Scholes Put Price: $2.93
+
+📊 Factor Model Covariance Matrix:
+[[ 0.0186  0.0104  0.0104  0.0079  0.0079  0.0058  0.0058  0.0058  0.0104
+   0.0079  0.0079  0.0079  0.    ]
+ [ 0.0104  0.031   0.0104  0.0079  0.0079  0.0058  0.0058  0.0058  0.0104
+   0.0079  0.0079  0.0079 -0.0352]
+ [ 0.0104  0.0104  0.022   0.0079  0.0079  0.0058  0.0058  0.0058  0.0104
+   0.0079  0.0079  0.0079  0.    ]
+ [ 0.0079  0.0079  0.0079  0.0185  0.0142  0.01    0.01    0.01    0.0079
+   0.0142  0.0142  0.0142  0.    ]
+ [ 0.0079  0.0079  0.0079  0.0142  0.0245  0.01    0.01    0.01    0.0079
+   0.0142  0.0142  0.0142  0.    ]
+ [ 0.0058  0.0058  0.0058  0.01    0.01    0.0381  0.0107  0.0107  0.0058
+   0.01    0.01    0.01    0.    ]
+ [ 0.0058  0.0058  0.0058  0.01    0.01    0.0107  0.0198  0.0107  0.0058
+   0.01    0.01    0.01    0.    ]
+ [ 0.0058  0.0058  0.0058  0.01    0.01    0.0107  0.0107  0.0277  0.0058
+   0.01    0.01    0.01    0.    ]
+ [ 0.0104  0.0104  0.0104  0.0079  0.0079  0.0058  0.0058  0.0058  0.032
+   0.0079  0.0079  0.0079  0.    ]
+ [ 0.0079  0.0079  0.0079  0.0142  0.0142  0.01    0.01    0.01    0.0079
+   0.0231  0.0142  0.0142  0.    ]
+ [ 0.0079  0.0079  0.0079  0.0142  0.0142  0.01    0.01    0.01    0.0079
+   0.0142  0.0229  0.0142  0.    ]
+ [ 0.0079  0.0079  0.0079  0.0142  0.0142  0.01    0.01    0.01    0.0079
+   0.0142  0.0142  0.018   0.    ]
+ [ 0.     -0.0352  0.      0.      0.      0.      0.      0.      0.
+   0.      0.      0.      0.0625]]
+
+📈 Classical Minimum Variance Portfolio Weights (using factor model covariance):
+   Asset_1: 0.00%
+   Asset_2: 56.87%
+   Asset_3: 0.00%
+   Asset_4: 0.00%
+   Asset_5: 0.00%
+   Asset_6: 1.27%
+   Asset_7: 3.82%
+   Asset_8: 2.04%
+   Asset_9: 0.00%
+   Asset_10: 0.00%
+   Asset_11: 0.00%
+   Asset_12: 0.00%
+   VTI_PUT: 35.99%
+
+⚛️  Building 78-Qubit MinVola QUBO...
+   ⚛️  Calculating Hamiltonian spectral density for QUBO penalties...
+   ✅ 78 variables (13 assets * 6 bits)
+
+===========================================================================
+⚛️ 2. QUBO FORMULATION & ENCODING
+===========================================================================
+
+Quadratic Unconstrained Binary Optimization (QUBO):
+  min_{x ∈ {0,1}^n}  x^T Q x
+  
+  Where Q is an n×n upper-triangular symmetric matrix.
+  Constraints are mapped as quadratic penalty terms:
+  H(x) = O(w) + P_budget*(Σw - 1)^2 + P_ret*(μ^Tw - ε)^2 + ...
+
+Sample QUBO Matrix Snippet (Top-Left 6x6):
+[[-0.45  0.    0.01  0.01  0.03  0.06]
+ [ 0.   -0.9   0.01  0.03  0.06  0.12]
+ [ 0.01  0.01 -1.79  0.06  0.12  0.23]
+ [ 0.01  0.03  0.06 -3.52  0.23  0.46]
+ [ 0.03  0.06  0.12  0.23 -6.81  0.93]
+ [ 0.06  0.12  0.23  0.46  0.93 51.3 ]]
+
+Binary Encoding (6 Bits per Asset):
+  - Why 6 bits? It provides 2^6 - 1 = 63 discrete states.
+  - Precision (Δ): max_weight / 63 = 0.25 / 63 ≈ 0.397% per step.
+  - This balances quantum resource limits (qubits) with financial 
+    precision requirements (sub-0.5% granularity).
+
+
+===========================================================================
+🔬 3. QUANTUM CIRCUIT DIAGRAM (QAOA p=3)
+===========================================================================
+
+      |0⟩ ──── H ──[e^{-iβ_1 H_M}]──[e^{-iγ_1 H_C}]── ... ──[e^{-iβ_3 H_M}]──[e^{-iγ_3 H_C}]── M ──
+      
+      Initial State: |+⟩^⊗n (Uniform Superposition via Hadamard gates)
+      H_C: Cost Hamiltonian (Encodes the QUBO matrix via Pauli-Z rotations)
+      H_M: Mixer Hamiltonian (Pauli-X rotations to explore state space)
+      M:  Measurement in computational basis
+
+
+===========================================================================
+🔬 4. QAOA METHODOLOGY & VARIATIONAL LOOP
+===========================================================================
+
+The Quantum Approximate Optimization Algorithm (QAOA) prepares a parameterized 
+quantum state by alternating between the Cost Hamiltonian (H_C) and the Mixer 
+Hamiltonian (H_M):
+
+  |ψ(γ, β)⟩ = e^{-iβ_p H_M} e^{-iγ_p H_C} ... e^{-iβ_1 H_M} e^{-iγ_1 H_C} |+⟩^⊗n
+
+Where:
+  - |+⟩^⊗n is the uniform superposition initial state.
+  - γ and β are the variational parameters optimized classically.
+  - H_C encodes the QUBO matrix via Pauli-Z (Z_i Z_j) rotations.
+  - H_M applies Pauli-X (X_i) rotations to explore the Hilbert space.
+
+Classical Optimization Loop:
+  1. Measure the expectation value: ⟨ψ(γ, β)| H_C |ψ(γ, β)⟩
+  2. Use a classical optimizer (e.g., Adam/COBYLA) to update γ, β to minimize cost.
+  3. Repeat until convergence to the ground state (optimal portfolio).
+
+Note: For our 78-qubit implementation, we utilize D-Wave's Simulated Annealing 
+sampler, which mathematically mirrors the adiabatic quantum tunneling of QAOA 
+but is computationally more tractable for NISQ-era hardware constraints.
+
+
+===========================================================================
+🔬 5. ISING HAMILTONIAN MAPPING (Mathematical Proof)
+===========================================================================
+
+The QUBO objective min(x^T Q x) is mapped to an Ising Hamiltonian (H_C) 
+by substituting binary variables x_i ∈ {0,1} with spin variables Z_i ∈ {-1,+1}:
+
+  Mapping: x_i = (1 - Z_i) / 2
+
+Substituting this into the QUBO expansion:
+  x^T Q x = Σ_i Q_ii x_i + Σ_{i<j} (Q_ij + Q_ji) x_i x_j
+
+Yields the Cost Hamiltonian:
+  H_C = Σ_i h_i Z_i + Σ_{i<j} J_ij Z_i Z_j
+
+Where the Ising coefficients are mathematically derived as:
+  J_ij = (Q_ij + Q_ji) / 4
+  h_i  = (Q_ii / 2) - (1/2) * Σ_{j≠i} (Q_ij + Q_ji)
+
+--- Extracted Hamiltonian Coefficients (First 4 Qubits of 78) ---
+  h_0 (Linear Bias): -0.5434
+  h_1 (Linear Bias): -1.0832
+  h_2 (Linear Bias): -2.1518
+  h_3 (Linear Bias): -4.2456
+
+  J_ij Couplings (First 4x4 block):
+  J_0,1 (Quadratic Coupling): 0.0018
+  J_0,2 (Quadratic Coupling): 0.0036
+  J_0,3 (Quadratic Coupling): 0.0073
+  J_1,2 (Quadratic Coupling): 0.0073
+  J_1,3 (Quadratic Coupling): 0.0145
+  J_2,3 (Quadratic Coupling): 0.0290
+
+Note: These coefficients are passed to the D-Wave Simulated Annealing Sampler.
+The sampler seeks the ground state (minimum energy) of this Hamiltonian.
+
+
+===========================================================================
+🔬 6. QUANTUM ENCODING ANALYSIS: QUBO vs DOMAIN-WALL vs ONE-HOT
+===========================================================================
+
+When mapping discrete portfolio weights to qubits, the choice of encoding 
+significantly impacts quantum resource requirements. We analyze three schemes:
+
+1. Binary QUBO (Our Choice): w_i = Δ Σ 2^j x_{i,j}
+   - Qubits: N_assets × N_bits
+   - Fully connected graph (all-to-all couplings)
+
+2. Domain-Wall Encoding: Uses d-1 qubits for d discrete states
+   - Qubits: N_assets × (2^N_bits - 1)
+   - Only local (nearest-neighbor) couplings per asset
+
+3. One-Hot Encoding: Uses d qubits for d discrete states
+   - Qubits: N_assets × 2^N_bits
+   - Requires one-hot constraint penalty (only 1 qubit ON per asset)
+
+Metric                         Binary QUBO          Domain-Wall          One-Hot             
+------------------------------------------------------------------------------------------
+Total Qubits                   78                   819                  832                 
+2-Qubit Gates (CNOTs)          9,009                31,902               1,037,088           
+Est. Circuit Depth (p=3)       9,243                34,359               1,039,584           
+Graph Connectivity             Fully Connected      Mixed                Fully Connected     
+------------------------------------------------------------------------------------------
+
+Analysis:
+- Binary QUBO uses the FEWEST qubits (78), making it scalable.
+- Domain-Wall uses 819 qubits but has simpler connectivity.
+- One-Hot uses 832 qubits, which exceeds current NISQ hardware limits.
+- We chose Binary QUBO because it minimizes qubit count while maintaining 
+  full coupling fidelity for the covariance matrix interactions.
+- Future work: Domain-Wall encoding could reduce circuit depth if hardware 
+  connectivity constraints become the primary bottleneck.
+
+🚀 Running Hybrid Solver (Annealing + Classical Polish)...
+⚡ Initializing QAOA with p=3 layers...
+   Initial Gammas: [1.18 2.99 2.3 ]
+   Initial Betas:  [1.88 0.49 0.49]
+⚡ Running Quantum Annealing Simulator (78-qubit)...
+
+--- Evaluating Top Bitstrings from Final Sampling for Overall Best Portfolio ---
+Bitstring                                                                   Assets          Num_Assets   Return     Risk       Sharpe    
+--------------------------------------------------------------------------------------------------------------------------------------------
+011110101010000010011100001100010110111100111110011110101100010100101110111110 0,1,2,3,4,5,6,7,8,9,10,11,12 13           3.11       9.18       0.3390    
+011110101010000010011100001100010110111100111110011110101100010100110110111110 0,1,2,3,4,5,6,7,8,9,10,11,12 13           3.10       9.17       0.3382    
+011110101010000010011100001100111010111100111110011110101100010100101110111110 0,1,2,3,4,5,6,7,8,9,10,11,12 13           3.06       9.16       0.3341    
+111110101010010010011100001100110110111100111110111010101100010100101110111110 0,1,2,3,4,5,6,7,8,9,10,11,12 13           3.16       9.15       0.3456    
+111110111010000010011100001100110110111100111110111010101100010100101110111110 0,1,2,3,4,5,6,7,8,9,10,11,12 13           3.14       9.13       0.3444    
+--------------------------------------------------------------------------------------------------------------------------------------------
+🛡️ Applying Classical Strict-Constrained Polish (Pseudo-Huber Loss)...
+   💧 Applying Liquidity Caps: Max bounds = [0.11, 0.19, 0.16, 0.14, 0.07, 0.07, 0.06, 0.18, 0.14, 0.16, 0.05, 0.2, 0.25]
+🎲 Generating Random Baseline for Validation...
+
+--- In-Sample Portfolio Performance (Training Data) ---
+Metric                    Classical Min Variance    QAOA Portfolio           
+---------------------------------------------------------------------------
+Expected Return           2.16%                    4.06%
+Expected Volatility       6.53%                    9.85%
+Sharpe Ratio (rf=0)       0.3305                    0.4125
+---------------------------------------------------------------------------
+
+--- Out-of-Sample Backtest (1-Year Unseen Test Data) ---
+Portfolio                 Cumulative Return        
+--------------------------------------------------
+Equal Weight (Benchmark)  114.92%
+Classical Min Variance    121.05%
+Quantum (QAOA)            115.02%
+--------------------------------------------------
+
+--- Advanced Portfolio Risk Metrics ---
+Sortino Ratio:        0.5835
+VaR (95%, 1Y):        12.19%
+CVaR (95%, 1Y):       16.21%
+Beta (vs VTI):        0.2833
+Alpha (vs VTI):       2.16%
+Tracking Error:       1.76%
+Information Ratio:    0.2015
+Max Drawdown (1Y):    -4.98%
+Calmar Ratio:         0.8165
+----------------------------------------
+
+--- Runtime & Scalability Analysis ---
+Component                 Runtime        
+----------------------------------------
+Data & Factor Model       ~2.5s          
+GBM + Black-Litterman     ~0.5s          
+QUBO Construction         ~0.1s          
+Quantum Annealer          1.46s          
+Classical Polish          ~0.2s          
+----------------------------------------
+Scalability: N=13 assets requires 78 qubits. N=30 assets would require 180 qubits.
+
+===========================================================================
+🎓 4. RESEARCH DISCUSSION & EVALUATION
+===========================================================================
+
+Why QAOA / Quantum Annealing?
+  Standard convex optimization struggles with discrete variables and 
+  non-convex constraints. QUBO mapping allows the quantum annealer to 
+  tunnel through energy barriers, finding global minimums in a high-dimensional
+  discrete space (2^78 configurations) more efficiently than brute-force.
+
+Why Hybrid Optimization?
+  Quantum hardware is noisy and limited in qubit count. Purely quantum 
+  solutions often violate hard constraints (like budget=1) due to soft penalties.
+  The Hybrid approach uses Quantum for global structure search, and Classical 
+  (SLSQP/NSGA-II) for strict boundary polishing, guaranteeing zero breaches.
+
+Limitations & Future Work:
+  - Current simulation uses Simulated Annealing. True gate-model QAOA on 
+    hardware (e.g., IBM Heron) will introduce noise and decoherence.
+  - Future work: Implement Domain-Wall encoding instead of binary to reduce 
+    circuit depth and two-qubit gate count.
+
+
+📊 Generating Quantitative Visualizations...
+   ✅ Saved: figures/chart_pie_allocation.png
+   ✅ Saved: figures/chart_bar_sectors.png
+   📈 Using out-of-sample test set for performance tracking...
+   ✅ Saved: figures/chart_line_performance.png
+   ✅ Saved: figures/chart_stream_graph.png
+   ⚠️ Skipping Candlestick Chart (Anonymized data has no live ticker).
+   ✅ Saved: figures/chart_qaoa_cost_history.png
+   ✅ Saved: figures/chart_qaoa_bitstring_distribution.png
+   ✅ Saved: figures/chart_covariance_heatmap.png
+   ✅ Saved: figures/chart_qubo_heatmap.png
+
+✨ All visualizations generated successfully in the 'figures/' folder.
+
+
+🧪 Running Multi-Optimizer Benchmark (SLSQP vs NSGA-II)...
+   📈 Generating SLSQP Classical Frontier...
+   ✅ Saved: figures/chart_slsqp_frontier.png
+   ✅ Saved: figures/chart_nsga2_frontier.png
+
+--- Optimizer Comparison (Polishing Quantum Baseline) ---
+Optimizer       Return     Volatility   Sharpe    
+--------------------------------------------------
+SLSQP           4.02       9.81         0.4103    
+NSGA-II         4.12       9.21         0.4469    
+--------------------------------------------------
+✅ Generated 'figures/chart_slsqp_frontier.png' and 'figures/chart_nsga2_frontier.png'!
+(venv) vishaldhanure@Vishals-MacBook-Air vanguard-quantum-portfolio % 

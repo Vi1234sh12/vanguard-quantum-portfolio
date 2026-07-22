@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-MAT | Quantum Portfolio Terminal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- Editorial Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3rZCXIiUBgkXg7F1t2K4K5ZqC7q3qCqCqCqCqCqCqCqCqCqCqCqCqCqCq" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            /* Strict Monochrome Palette */
+            --bg: #FFFFFF;
+            --fg: #000000;
+            --muted: #F5F5F5;
+            --muted-fg: #525252;
+            --border: #000000;
+            --border-light: #E5E5E5;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            border-radius: 0 !important; /* Non-negotiable sharp corners */
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Typography Classes */
+        .display, h1, h2, h3, h4, h5, h6 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            line-height: 1.1;
+        }
+        
+        .mono { 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.875rem; 
+            letter-spacing: 0.02em;
+        }
+
+        .label {
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.75rem;
+            color: var(--muted-fg);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Navigation */
+        .top-nav {
+            background: var(--bg);
+            border-bottom: 4px solid var(--fg); /* Thick rule */
+            padding: 24px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { 
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem; 
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+        .nav-status { 
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; 
+            color: var(--muted-fg); 
+            display: flex; 
+            gap: 24px; 
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .container-fluid { 
+            padding: 48px; 
+            max-width: 1600px; 
+            margin: 0 auto; 
+        }
+
+        /* Layout & Panels */
+        .panel {
+            background: var(--bg);
+            border: 1px solid var(--fg);
+            margin-bottom: 32px;
+        }
+        .panel-header {
+            border-bottom: 1px solid var(--fg);
+            padding: 16px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-body { padding: 32px 24px; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        thead th { 
+            border-bottom: 2px solid var(--fg); 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            padding: 16px 24px;
+            text-align: left;
+        }
+        tbody tr { 
+            border-bottom: 1px solid var(--border-light); 
+            transition: background 0.1s; 
+        }
+        tbody tr:hover { background: var(--muted); }
+        tbody td { padding: 20px 24px; }
+
+        /* Buttons */
+        .btn-exec {
+            background: var(--fg);
+            color: var(--bg);
+            border: 2px solid var(--fg);
+            padding: 16px 32px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.1s; /* Instant */
+        }
+        .btn-exec:hover { 
+            background: var(--bg); 
+            color: var(--fg); 
+        }
+        .btn-exec:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--fg);
+            border: 1px solid var(--fg);
+            padding: 8px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.1s;
+        }
+        .btn-ghost:hover { 
+            background: var(--fg); 
+            color: var(--bg); 
+        }
+
+        /* Metrics */
+        .metric-value { 
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem; 
+            font-weight: 700; 
+            line-height: 1;
+            margin: 0;
+        }
+        
+        /* Progress Bars */
+        .progress-bg { 
+            background: var(--muted); 
+            height: 4px; 
+            border: 1px solid var(--fg);
+            overflow: hidden; 
+            margin-bottom: 16px; 
+        }
+        .progress-fill { 
+            height: 100%; 
+            background: var(--fg); 
+            transition: width 0.1s linear; /* Instant feel */
+        }
+
+        /* Tabbed Navigation */
+        .nav-tabs {
+            border-bottom: 4px solid var(--fg);
+            margin-bottom: 48px;
+            display: flex;
+            gap: 48px;
+        }
+        .nav-tab {
+            padding: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted-fg);
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 4px solid transparent;
+            margin-bottom: -4px; /* Align with nav border */
+            transition: all 0.1s;
+        }
+        .nav-tab:hover { color: var(--fg); }
+        .nav-tab.active { 
+            color: var(--fg); 
+            border-bottom-color: var(--fg); 
+            font-weight: 500;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Math & Data Elements */
+        .math-block {
+            background: var(--muted);
+            padding: 24px;
+            border: 1px solid var(--border-light);
+            text-align: center;
+        }
+        
+        .qubo-cell {
+            transition: background 0.1s;
+        }
+        .qubo-cell:hover {
+            background: var(--fg) !important;
+            color: var(--bg) !important;
+            z-index: 10;
+            border: 1px solid var(--fg) !important;
+        }
+        
+        /* Form Inputs */
+        .form-select, .form-range {
+            border-radius: 0 !important;
+            border: 1px solid var(--fg);
+            background: var(--bg);
+            color: var(--fg);
+        }
+        .form-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--fg);
+            cursor: pointer;
+            border-radius: 0 !important;
+        }
+
+        /* Utility */
+        .text-muted { color: var(--muted-fg) !important; }
+        .text-success { color: var(--fg) !important; font-weight: 600; } /* No green, just bold black */
+        .text-danger { color: var(--fg) !important; font-style: italic; } /* No red, just italic */
+        .border-thick { border-bottom: 4px solid var(--fg); padding-bottom: 24px; margin-bottom: 32px; }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <div class="logo">Q-MAT</div>
+        <div class="nav-status">
+            <span>QUBO_ENGINE: ONLINE</span>
+            <span>QPU_SIM: ACTIVE</span>
+            <span>DB: CONNECTED</span>
+        </div>
+    </div>
+    <div class="container-fluid">
+        {% block content %}{% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
