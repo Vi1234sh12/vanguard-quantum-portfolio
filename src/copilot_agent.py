@@ -28,40 +28,50 @@ def generate_ai_memo(final_weights, data, config):
     put_weight = final_weights[-1]
     derivative_note = ""
     if put_weight > 0.001:
-        derivative_note = f" Notably, the optimizer allocated {put_weight*100:.2f}% to a VTI Protective Put (valued via Black-Scholes), utilizing non-linear derivative payoff structures to hedge tail risk."
+        derivative_note = (f" Notably, the optimizer allocated {put_weight*100:.2f}% to a VTI Protective Put "
+                           f"(valued via Black-Scholes), utilizing non-linear derivative payoff structures to hedge tail risk.")
 
     # 4. Calculate portfolio metrics
     port_return = np.dot(final_weights, mu)
     best_asset_idx = top_indices[0]
     
-    # 5. Check if target return was met (with a 0.5% buffer for rounding/constraint boundaries)
-    target_met = port_return >= config['MIN_RETURN'] - 0.005
+    # 5. Check if target return was met
     target_notice = ""
-    if not target_met:
-        target_notice = f"\n\n⚠️ TARGET RETURN NOTICE: The requested minimum return of {config['MIN_RETURN']*100:.2f}% was mathematically infeasible given the strict liquidity caps and turnover limits. The optimizer safely reverted to the maximum achievable return of {port_return*100:.2f}% to maintain zero hard-constraint breaches."
+    if port_return < config['MIN_RETURN'] - 0.005:
+        target_notice = (f"⚠️ TARGET RETURN NOTICE: The requested minimum return of {config['MIN_RETURN']*100:.2f}% "
+                         f"was mathematically infeasible given the strict liquidity caps and turnover limits. "
+                         f"The optimizer safely reverted to the maximum achievable return of {port_return*100:.2f}% "
+                         f"to maintain zero hard-constraint breaches.")
     
-    # 6. Construct the memo
-    memo = []
-    memo.append("🤖 AI PORTFOLIO CO-PILOT MEMO")
-    memo.append("=========================================================")
-    memo.append("Executive Summary:")
-    memo.append(f"To achieve the target minimum return of {config['MIN_RETURN']*100:.0f}% while minimizing volatility, the Quantum-Hybrid optimizer has selected a diversified multi-asset allocation. ")
-    memo.append(f"The model prioritizes {top_holdings[0]} as the primary growth engine, supported by {top_holdings[1]} and {top_holdings[2]} to provide structural stability.{derivative_note}")
-    
-    memo.append("\nStrategic Trade-offs:")
+    # 6. Construct the memo line by line to guarantee exact spacing
+    memo_lines = [
+        "🤖 AI PORTFOLIO CO-PILOT MEMO",
+        "=========================================================",
+        "Executive Summary:",
+        f"To achieve the target minimum return of {config['MIN_RETURN']*100:.0f}% while minimizing volatility, the Quantum-Hybrid optimizer has selected a diversified multi-asset allocation. ",
+        f"The model prioritizes {top_holdings[0]} as the primary growth engine, supported by {top_holdings[1]} and {top_holdings[2]} to provide structural stability.{derivative_note}",
+        "",  # Blank line
+        "Strategic Trade-offs:"
+    ]
+
     if trade_offs:
-        memo.append("The optimization required navigating several strict guardrails. Specifically, " + " and ".join(trade_offs) + ". ")
-        memo.append(f"By hitting these constraints, the portfolio successfully avoids over-concentration in {tickers[best_asset_idx]}, ensuring resilience under adverse market scenarios.")
+        memo_lines.append(f"The optimization required navigating several strict guardrails. Specifically, " + " and ".join(trade_offs) + ". ")
+        memo_lines.append(f"By hitting these constraints, the portfolio successfully avoids over-concentration in {tickers[best_asset_idx]}, ensuring resilience under adverse market scenarios.")
     else:
-        memo.append("The optimization found a solution well within all guardrails, indicating a highly stable global minimum variance portfolio.")
-    
-    memo.append(f"\nFinancial Rationale:")
-    memo.append(f"Using the Black-Litterman expected returns (blended with Geometric Brownian Motion views), the projected annualized return is {port_return*100:.2f}%. ")
-    memo.append("This allocation favors assets with high risk-adjusted implied returns while utilizing fixed income, real assets, and derivatives to dampen overall portfolio variance.")
-    
+        memo_lines.append("The optimization found a solution well within all guardrails, indicating a highly stable global minimum variance portfolio.")
+
+    memo_lines.extend([
+        "",  # Blank line
+        "Financial Rationale:",
+        f"Using the Black-Litterman expected returns (blended with Geometric Brownian Motion views), the projected annualized return is {port_return*100:.2f}%. ",
+        "This allocation favors assets with high risk-adjusted implied returns while utilizing fixed income, real assets, and derivatives to dampen overall portfolio variance.",
+        ""  # Blank line
+    ])
+
     if target_notice:
-        memo.append(target_notice)
-        
-    memo.append("=========================================================")
+        memo_lines.append(target_notice)
+        memo_lines.append("")  # Blank line
+
+    memo_lines.append("=========================================================")
     
-    return "\n".join(memo)
+    return "\n".join(memo_lines)

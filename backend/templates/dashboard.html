@@ -1,21 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4>Q-MAT (Quantum Multi-Asset Terminal)</h4>
-        <small class="text-muted mono">vanguard-challenge | hybrid-qaoa-architecture</small>
-    </div>
-</div>
 
 <!-- Fixed Loading Alert with Progress Bar -->
-<div id="loadingAlert" class="alert-quantum" style="display: none; flex-direction: column; gap: 10px;">
+<div id="loadingAlert" class="panel" style="display: none; flex-direction: column; gap: 12px; border-left: 4px solid var(--fg); border-top: none; border-right: none; border-bottom: none; padding: 16px 0; margin-bottom: 32px;">
     <div style="display: flex; align-items: center;">
-        <span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem; margin-right: 8px;"></span>
+        <span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem; margin-right: 12px; border-color: var(--fg); border-right-color: transparent;"></span>
         <span id="progressText" class="mono">INITIALIZING...</span>
     </div>
-    <div class="progress-bg" style="margin-bottom: 0; height: 4px; width: 100%;">
-        <div id="progressBar" class="progress-fill" style="width: 0%; background: var(--accent-blue);"></div>
+    <div class="progress-bg" style="margin-bottom: 0; height: 2px; width: 100%;">
+        <div id="progressBar" class="progress-fill" style="width: 0%; background: var(--fg);"></div>
     </div>
 </div>
 
@@ -24,7 +18,7 @@
     <div class="col-md-9">
         <div class="panel">
             <div class="panel-header">
-                <span>// EXECUTION HISTORY</span>
+                <span>EXECUTION HISTORY</span>
                 <span>{{ runs|length }} Records</span>
             </div>
             <div class="panel-body" style="padding: 0;">
@@ -44,16 +38,20 @@
                         {% for run in runs %}
                         <tr>
                             <td class="mono">#{{ run.id }}</td>
-                            <td class="text-bright">{{ run.profile_name }}</td>
-                            <td><span class="badge-active">{{ run.status }}</span></td>
-                            <td class="text-end mono text-success">{{ ((run.metrics.get('expected_return', 0) if run.metrics else 0) * 100) | round(2) }}%</td>
-                            <td class="text-end mono text-warning">{{ ((run.metrics.get('expected_volatility', 0) if run.metrics else 0) * 100) | round(2) }}%</td>
-                            <td class="text-end mono text-bright">{{ (run.metrics.get('sharpe_ratio', 0) if run.metrics else 0) | round(4) }}</td>
-                            <td class="text-end"><a href="/portfolio/{{ run.id }}" class="btn-ghost">INSPECT →</a></td>
+                            <td style="font-weight: 600;">{{ run.profile_name }}</td>
+                            <td>
+                                <span class="mono" style="background: var(--fg); color: var(--bg); padding: 4px 10px; font-weight: 700; letter-spacing: 0.05em;">
+                                    {{ run.status }}
+                                </span>
+                            </td>
+                            <td class="text-end mono" style="font-weight: 700;">{{ ((run.metrics.get('expected_return', 0) if run.metrics else 0) * 100) | round(2) }}%</td>
+                            <td class="text-end mono text-muted">{{ ((run.metrics.get('expected_volatility', 0) if run.metrics else 0) * 100) | round(2) }}%</td>
+                            <td class="text-end mono">{{ (run.metrics.get('sharpe_ratio', 0) if run.metrics else 0) | round(4) }}</td>
+                            <td class="text-end"><a href="/portfolio/{{ run.id }}" class="btn-ghost">INSPECT &rarr;</a></td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted" style="padding: 30px;">No optimizations executed. Initialize pipeline.</td>
+                            <td colspan="7" class="text-center text-muted" style="padding: 40px;">No optimizations executed. Initialize pipeline.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -67,48 +65,58 @@
         
         <!-- Tunable Goals Panel -->
         <div class="panel mb-4">
-            <div class="panel-header">// 🎛️ TUNABLE GOALS</div>
+            <div class="panel-header">TUNABLE GOALS</div>
             <div class="panel-body">
-                <div class="mb-3">
-                    <label class="metric-label">Profile Name</label>
-                    <select id="profileName" class="form-select form-select-sm" style="background: var(--bg-card); color: var(--text-bright); border-color: var(--border-bright);">
+                <div class="mb-4">
+                    <label class="label">Profile Name</label>
+                    <select id="profileName" class="form-select form-select-sm">
                         <option value="Conservative MinVola">Conservative MinVola</option>
                         <option value="Balanced MinVola">Balanced MinVola</option>
                         <option value="Aggressive Growth">Aggressive Growth</option>
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label class="metric-label">Risk Aversion (λ)</label>
-                    <input type="range" class="form-range" min="1" max="10" step="0.5" value="5" id="lambdaInput" oninput="document.getElementById('lambdaVal').innerText = this.value">
-                    <span class="mono text-bright" id="lambdaVal" style="font-size: 12px;">5</span>
-                </div>
-                <div class="mb-3">
-                    <label class="metric-label">Min Return Target (ε)</label>
-                    <input type="range" class="form-range" min="0.02" max="0.12" step="0.005" value="0.07" id="minReturnInput" oninput="document.getElementById('minReturnVal').innerText = (this.value*100).toFixed(1) + '%'">
-                    <span class="mono text-bright" id="minReturnVal" style="font-size: 12px;">7.0%</span>
-                </div>
+                
+                <!-- UI Fix: Label and Value Aligned on Same Row -->
                 <div class="mb-4">
-                    <label class="metric-label">Max Turnover Limit</label>
-                    <input type="range" class="form-range" min="0.05" max="0.50" step="0.01" value="0.15" id="maxTurnoverInput" oninput="document.getElementById('maxTurnoverVal').innerText = (this.value*100).toFixed(0) + '%'">
-                    <span class="mono text-bright" id="maxTurnoverVal" style="font-size: 12px;">15%</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="label" style="margin-bottom: 0;">Risk Aversion (&lambda;)</label>
+                        <span class="mono" id="lambdaVal" style="font-size: 14px; font-weight: 700;">5</span>
+                    </div>
+                    <input type="range" class="form-range" min="1" max="10" step="0.5" value="5" id="lambdaInput" oninput="document.getElementById('lambdaVal').innerText = this.value">
                 </div>
                 
-                <button id="runOptBtn" class="btn-exec w-100">⚡ Execute Pipeline</button>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="label" style="margin-bottom: 0;">Min Return Target (&epsilon;)</label>
+                        <span class="mono" id="minReturnVal" style="font-size: 14px; font-weight: 700;">7.0%</span>
+                    </div>
+                    <input type="range" class="form-range" min="0.02" max="0.12" step="0.005" value="0.07" id="minReturnInput" oninput="document.getElementById('minReturnVal').innerText = (this.value*100).toFixed(1) + '%'">
+                </div>
+                
+                <div class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="label" style="margin-bottom: 0;">Max Turnover Limit</label>
+                        <span class="mono" id="maxTurnoverVal" style="font-size: 14px; font-weight: 700;">15%</span>
+                    </div>
+                    <input type="range" class="form-range" min="0.05" max="0.50" step="0.01" value="0.15" id="maxTurnoverInput" oninput="document.getElementById('maxTurnoverVal').innerText = (this.value*100).toFixed(0) + '%'">
+                </div>
+                
+                <button id="runOptBtn" class="btn-exec w-100">EXECUTE PIPELINE &rarr;</button>
             </div>
         </div>
 
-        <!-- System Specs Panel -->
-        <div class="panel">
-            <div class="panel-header">// SYSTEM SPECS</div>
+        <!-- UI Fix: Tinted Background for System Specs to separate from Tunable Goals -->
+        <div class="panel" style="background: var(--muted);">
+            <div class="panel-header" style="border-bottom: 1px solid var(--border-light);">SYSTEM SPECS</div>
             <div class="panel-body" style="padding: 0;">
                 <table>
                     <tbody>
-                        <tr><td class="mono text-muted">Qubits</td><td class="mono text-bright text-end">78</td></tr>
-                        <tr><td class="mono text-muted">Encoding</td><td class="mono text-bright text-end">6-Bit Binary</td></tr>
-                        <tr><td class="mono text-muted">Hamiltonian</td><td class="mono text-bright text-end">Ising</td></tr>
-                        <tr><td class="mono text-muted">QAOA Layers</td><td class="mono text-bright text-end">p=3</td></tr>
-                        <tr><td class="mono text-muted">Polisher</td><td class="mono text-bright text-end">SLSQP</td></tr>
-                        <tr><td class="mono text-muted">Database</td><td class="mono text-bright text-end">PostgreSQL</td></tr>
+                        <tr><td class="mono text-muted" style="border: none;">Qubits</td><td class="mono text-end" style="border: none; font-weight: 700;">78</td></tr>
+                        <tr><td class="mono text-muted" style="border: none;">Encoding</td><td class="mono text-end" style="border: none; font-weight: 700;">6-Bit Binary</td></tr>
+                        <tr><td class="mono text-muted" style="border: none;">Hamiltonian</td><td class="mono text-end" style="border: none; font-weight: 700;">Ising</td></tr>
+                        <tr><td class="mono text-muted" style="border: none;">QAOA Layers</td><td class="mono text-end" style="border: none; font-weight: 700;">p=3</td></tr>
+                        <tr><td class="mono text-muted" style="border: none;">Polisher</td><td class="mono text-end" style="border: none; font-weight: 700;">SLSQP</td></tr>
+                        <tr><td class="mono text-muted" style="border: none;">Database</td><td class="mono text-end" style="border: none; font-weight: 700;">PostgreSQL</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -138,10 +146,10 @@
         const maxTurnover = parseFloat(document.getElementById('maxTurnoverInput').value);
         
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem; margin-right: 8px;"></span> EXECUTING...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem; margin-right: 8px; border-color: var(--bg); border-right-color: transparent;"></span> EXECUTING...';
         alert.style.display = 'flex';
         progressBar.style.width = '0%';
-        progressBar.style.background = 'var(--accent-blue)';
+        progressBar.style.background = 'var(--fg)';
 
         try {
             // 1. Trigger the async pipeline with dynamic config
@@ -168,15 +176,13 @@
                     clearInterval(pollInterval);
                     progressText.innerText = "SUCCESS: Redirecting to Inspection Terminal...";
                     progressBar.style.width = '100%';
-                    progressBar.style.background = 'var(--accent-green)';
                     setTimeout(() => { window.location.href = `/portfolio/${statusData.run_id}`; }, 500);
                 } else if (statusData.status === 'FAILED') {
                     clearInterval(pollInterval);
                     progressText.innerText = "ERROR: " + statusData.progress;
                     progressBar.style.width = '100%';
-                    progressBar.style.background = 'var(--accent-red)';
                     btn.disabled = false;
-                    btn.innerHTML = '⚡ Execute Pipeline';
+                    btn.innerHTML = 'EXECUTE PIPELINE &rarr;';
                     isExecuting = false; // Allow retry
                 } else {
                     // Update UI with current step
@@ -192,7 +198,7 @@
         } catch (error) {
             console.error('Error:', error);
             btn.disabled = false;
-            btn.innerHTML = '⚡ Execute Pipeline';
+            btn.innerHTML = 'EXECUTE PIPELINE &rarr;';
             alert.style.display = 'none';
             isExecuting = false;
         }
